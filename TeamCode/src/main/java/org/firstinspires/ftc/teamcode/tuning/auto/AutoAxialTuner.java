@@ -16,6 +16,7 @@ import followers.constants.P2PFollowerConstants;
 import localizers.Localizer;
 import util.Pose;
 
+// TODO: Reduce redundant boilerplate code by make base class for auto tuners
 @TeleOp(name = "Auto Axial Tuner")
 public class AutoAxialTuner extends LinearOpMode {
     private Drivetrain drivetrain;
@@ -33,7 +34,7 @@ public class AutoAxialTuner extends LinearOpMode {
     public static double derivativeGain;
 
     // The target distance to travel during Phase 1 and Phase 3 (48 inches = 2 FTC tiles)
-    private final double TEST_DISTANCE = 48.0;
+    private final double TEST_DISTANCE = 48.0; // TODO: Make this adjustable by the user?
 
     @Override
     public void runOpMode() throws InterruptedException {

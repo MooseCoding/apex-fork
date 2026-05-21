@@ -15,6 +15,7 @@ import drivetrains.Drivetrain;
 import localizers.Localizer;
 import util.Pose;
 
+// TODO: Reduce redundant boilerplate code by make base class for auto tuners
 @TeleOp(name = "Auto Heading Tuner")
 public class AutoHeadingTuner extends LinearOpMode {
     private Drivetrain drivetrain;

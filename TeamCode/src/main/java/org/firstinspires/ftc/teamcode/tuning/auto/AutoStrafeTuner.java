@@ -16,6 +16,7 @@ import followers.constants.P2PFollowerConstants;
 import localizers.Localizer;
 import util.Pose;
 
+// TODO: Reduce redundant boilerplate code by make base class for auto tuners
 @TeleOp(name = "Auto Strafe Tuner")
 public class AutoStrafeTuner extends LinearOpMode {
     private Drivetrain drivetrain;
