@@ -16,12 +16,13 @@ import localizers.Localizer;
 import util.Pose;
 
 /**
- * OpMode for tuning the axial (drive) controller with Panels. Hold X to turn the robot 180 degrees,
- * hold B to rotate to -45 degrees, and hold A to rotate back to the start position. Adjust the
+ * OpMode for tuning the axial (drive) controller with Panels. Hold X to move the robot 24 inches forward,,
+ * hold B to move 6 inches backwards, and hold A to move it back to the start position. Adjust the
  * proportional gain, derivative gain, minimum power, and deadzone in Panels.
  *
  * @author Joel - 7842 Browncoats Alumni
  * @author Dylan B. - 18597 RoboClovers - Delta
+ * @author Sohum Arora - 22985 Paraducks
  */
 @Configurable
 @TeleOp(name = "Axial Tuner", group = "Apex Pathing Tuning")
@@ -38,6 +39,9 @@ public class AxialTuner extends OpMode {
     public static double proportionalGain; // kP
     public static double derivativeGain; // kD
     public static double minPower; // kL
+    private boolean wasAtTarget = false;
+    private boolean atTarget = false;
+    private double rawOutput;
 
     @Override
     public void init() {
@@ -59,7 +63,7 @@ public class AxialTuner extends OpMode {
         deadzone = controller.getDeadzone();
 
         fullTelem.addLine(
-                "Hold X to move forward 24 inches, B to move backward 6 inches, and A to rotate back to start position."
+                "Hold X to move forward 24 inches, B to move backward 6 inches, and A to drive back to the start position."
         );
         fullTelem.update();
     }
@@ -69,14 +73,13 @@ public class AxialTuner extends OpMode {
 
         double turn = 0;
         if (maintainHeading) {
-            double headingError = 0 - this.localizer.getPose().getHeading(); // Target heading is 0 degrees
-            turn = headingController.calculateFromError(headingError);
+            turn = headingController.calculate(target, this.localizer.getPose().getHeading());
         } else {
             headingController.reset(); // Prevent derivative kick when not maintaining heading
         }
 
-        double error = target - this.localizer.getPose().getX();
-        this.drivetrain.moveWithVectors(this.controller.calculateFromError(error), 0, turn);
+        this.rawOutput = controller.calculate(target, this.localizer.getPose().getX());
+        this.drivetrain.moveWithVectors(rawOutput, 0, turn);
     }
 
     @Override
@@ -99,8 +102,20 @@ public class AxialTuner extends OpMode {
             drivetrain.stop();
         }
 
+        atTarget = controller.isAtTarget();
+        if (atTarget && !wasAtTarget) { // Gamepad rumble and Led green when at target
+            gamepad1.rumble(0.5, 0.5, 100);
+            gamepad1.setLedColor(0, 1, 0, 300);
+        } else if (!atTarget) { // Led red when not at target
+            gamepad1.setLedColor(1, 0, 0, 100);
+        }
+        wasAtTarget = atTarget;
+
         fullTelem.addData("Target: ", target);
         fullTelem.addData("Position: ", localizer.getPose().getX());
+        fullTelem.addData("Error: ", controller.getError());
+        fullTelem.addData("Raw Controller Output: ", rawOutput);
+        fullTelem.addData("Drivetrain Output: ", drivetrain.toString());
         fullTelem.update();
     }
 }

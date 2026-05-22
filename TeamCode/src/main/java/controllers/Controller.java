@@ -8,7 +8,7 @@ import util.Distance;
 public abstract class Controller {
     protected double goal = 0.0;
     protected double lastError = 0.0;
-    protected double motorDeadzone = 0.05;
+    protected double motorDeadzone = 0;
     protected boolean timeAnomalyDetected = false;
     private long lastTimestamp;
     private boolean hasRun = false;
@@ -116,6 +116,8 @@ public abstract class Controller {
 
         return calculateFromError(target - currentPosition);
     }
+
+    public double getError() { return lastError; }
 
     /**
      * @param error Difference between goal and current position.
