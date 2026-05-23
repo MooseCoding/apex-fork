@@ -27,7 +27,7 @@ public class SwerveModule {
     private final DcMotorEx driveMotor;
     private final CRServo steerServo;
     private final AnalogInput encoder; // 0–3.3V maps to 0–360 degrees
-
+    private double offsetAngle = 0; //degrees
     private double targetAngle = 0;
     private double targetPower = 0;
     private double lastTargetPower = 0;
@@ -54,7 +54,7 @@ public class SwerveModule {
     /**
      * @return current pod heading in degrees [0, 360)
      */
-    public double getAngle() { return encoder.getVoltage() * voltageToDegrees; }
+    public double getAngle() { return encoder.getVoltage() * voltageToDegrees + offsetAngle; }
 
     /**
      * @param power power to apply to the drive motor, from -1 to 1
