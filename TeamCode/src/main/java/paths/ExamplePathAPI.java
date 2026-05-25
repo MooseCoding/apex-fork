@@ -43,7 +43,7 @@ public class ExamplePathAPI {
 
             // 6. IN-LINE OVERRIDE: Overrides the heading strategy of the segment generated directly above it.
             // This replaces TANGENT_OPTIMAL for that specific lineTo() segment with TANGENT_FORWARD.
-            .interpolatePreviousSegment(new HeadingInterpolator(InterpolationStyle.TANGENT_FORWARD))
+            .interpolateSegment((InterpolationStyle.TANGENT_FORWARD))
 
             // 7. ADVANCED LAMBDA OVERRIDE: Want the robot to spin exactly 3 times over the course of a curve?
             // You can pass a custom function where 's' is the distance percentage (0.0 to 1.0).
@@ -51,7 +51,7 @@ public class ExamplePathAPI {
                     new Pose(10, 10),
                     new Pose(20, 0, 0)
             )
-            .interpolatePreviousSegment(new HeadingInterpolator(s -> new Angle(s * (6 * Math.PI))))
+            .interpolateSegment((s -> new Angle(s * (6 * Math.PI))))
 
             // 8. FAILSAFE DEMONSTRATION: Missing headings!
             // We provide no end heading here. Apex won't crash; it will fall back to TANGENT_FORWARD
