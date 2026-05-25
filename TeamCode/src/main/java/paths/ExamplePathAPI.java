@@ -17,7 +17,6 @@ public class ExamplePathAPI {
 
                 // 2. GLOBAL OVERRIDE: Set the default behavior for all following segments.
                 // Options: TANGENT_OPTIMAL, TANGENT_FORWARD, SMOOTH_START_TO_END (Default)
-                .setInterpolationStyle(InterpolationStyle.TANGENT_OPTIMAL)
 
                 // 3. THE B-SPLINE: A fluid curve through multiple control points.
                 .bSplineTo(
@@ -30,7 +29,7 @@ public class ExamplePathAPI {
 
                         // The heading of the FINAL pose dictates the robot's target angle at the end of the curve.
                         new Pose(25, 20, Math.toRadians(90))
-                )
+                ).interpolateSegment(InterpolationStyle.TANGENT_OPTIMAL)
 
                 // 4. POINT TURN: Stationary rotation.
                 // The robot stops translating, rotates to the target angle, and updates the tracker state.
