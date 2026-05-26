@@ -1,11 +1,13 @@
 package paths;
 
+import java.util.ArrayList;
 import java.util.function.Function;
 import paths.geometry.BSpline;
 import paths.heading.HeadingInterpolator;
 import paths.heading.InterpolationStyle;
 import util.Angle;
 import util.Pose;
+import util.FilletPose;
 import util.Vector;
 
 /**
@@ -22,11 +24,11 @@ import util.Vector;
 public class PathBuilder {
     private final Path path;
     private Pose lastPose;
+    private boolean isPointsAlreadyCreated = false;
     private static final InterpolationStyle DEFAULT_INTERPOLATION = InterpolationStyle.SMOOTH_START_TO_END;
     private InterpolationStyle currentStyle = DEFAULT_INTERPOLATION;
 
     public enum SegmentType {
-        LINETO,
         BSPLINE,
         TURN
     }
@@ -188,18 +190,75 @@ public class PathBuilder {
 
         return new HeadingInterpolator(currentStyle, start.getHeadingComponent(), end.getHeadingComponent());
     }
+
     /**
-     * Appends a continuous Uniform Cubic B-Spline to the path using the specified control points.
-     * The curve automatically begins at the end of the previous segment (or the start pose).
+     * Appends a continuous Uniform Cubic B-Spline to the path using the specified control points,
+     * automatically calculating fillets for any sharp corners.
      * <p>
-     * This is a fluent alias for {@link #curveTo(Pose...)}.
+     * This is a fluent pre-processor and alias for {@link #curveTo(Pose...)}.
      *
      * @param poses A variable number of waypoints/control points to define the B-Spline curve.
      * The final pose determines the target heading for the default interpolator.
      * @return The current PathBuilder instance for method chaining.
-     * @throws IllegalArgumentException If fewer than 2 points are provided.
+     * @throws IllegalArgumentException If fewer than 2 points are provided, if endpoints are tightened,
+     * or if a tightening radius geometrically exceeds adjacent segment bounds.
      */
     public PathBuilder addControlPoints(Pose... poses) {
-        return this.curveTo(poses);
+        if (isPointsAlreadyCreated) {
+            throw new IllegalArgumentException("Only one set of control points can be added to a path!");
+        }
+        isPointsAlreadyCreated = true;
+
+        if (poses[0] instanceof FilletPose || poses[poses.length - 1] instanceof FilletPose) {
+            throw new IllegalArgumentException("Endpoints can't be filleted any!");
+        }
+
+        // Initialize a list with enough initial capacity to hold the expanded points
+        ArrayList<Pose> newPoses = new ArrayList<>(poses.length * 2);
+        newPoses.add(poses[0]);
+
+        for (int i = 1; i < poses.length - 1; i++) {
+            if (poses[i] instanceof FilletPose) {
+                FilletPose tightPose = (FilletPose) poses[i];
+                double radius = tightPose.getRadius();
+
+                if (radius < 2.0) {
+                    throw new IllegalArgumentException("Fillet radius must be at least 2.0 inches.");
+                }
+
+                Pose lastPose = poses[i - 1];
+                Pose nextPose = poses[i + 1];
+
+                // 1. Get raw direction vectors pointing from the corner towards the adjacent poses
+                Vector vecToLast = lastPose.toVec().subtract(tightPose.toVec());
+                Vector vecToNext = nextPose.toVec().subtract(tightPose.toVec());
+
+                double distToLast = vecToLast.getMagnitude();
+                double distToNext = vecToNext.getMagnitude();
+
+                // 2. Validate that the radius does not physically exceed the adjacent segment lengths
+                if (radius > distToLast) {
+                    throw new IllegalArgumentException("Fillet radius (" + radius + ") exceeds the distance to the last control point.");
+                } else if (radius > distToNext) {
+                    throw new IllegalArgumentException("Fillet radius (" + radius + ") exceeds the distance to the next control point.");
+                }
+
+                // 3. Scale the direction vectors to be exactly 'radius' long, then add back to the corner's origin
+                Vector p1Vec = tightPose.toVec().add(vecToLast.multiply(radius / distToLast));
+                Vector p2Vec = tightPose.toVec().add(vecToNext.multiply(radius / distToNext));
+
+                // 4. Inject the two newly calculated offset points instead of the original sharp corner
+                newPoses.add(new Pose(p1Vec.getX(), p1Vec.getY(), tightPose.getHeading()));
+                newPoses.add(new Pose(p2Vec.getX(), p2Vec.getY(), tightPose.getHeading()));
+
+            } else {
+                // Standard pose, just add it directly
+                newPoses.add(poses[i]);
+            }
+        }
+
+        newPoses.add(poses[poses.length - 1]);
+
+        return this.curveTo(newPoses.toArray(new Pose[0]));
     }
 }

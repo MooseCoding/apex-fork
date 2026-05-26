@@ -27,9 +27,11 @@ public class ExamplePathAPIV3 {
                 .addControlPoints(
                         pose.at(10, 0),
                         /* TODO: Implement tighten method in Path */
-                        Path.tighten(pose.at(15, 15)),
-                        pose.at(25, 25, 90)
+                        pose.at(15, 15),
+                        pose.at(25, 25, 90),
+                        pose.filletAt(50, 50, 10)
                 )
+                // TODO: make this function!
                 .addCallback(0.5, () -> {
                     exampleCallback();
                 })
