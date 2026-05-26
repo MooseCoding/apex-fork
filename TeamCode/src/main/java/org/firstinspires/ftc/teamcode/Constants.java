@@ -5,10 +5,12 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-import controllers.PDSController.PDSCoefficients;
+import controllers.PDFLController.PDFLCoefficients;
 import core.ApexBuilder;
 import drivetrains.constants.DrivetrainConstants;
 import drivetrains.constants.MecanumConstants;
+import drivetrains.constants.SwerveConstants;
+import drivetrains.constants.SwerveModuleConstants;
 import localizers.constants.LocalizerConstants;
 import localizers.constants.PinpointConstants;
 import followers.constants.FollowerConstants;
@@ -56,17 +58,18 @@ public class Constants extends ApexBuilder {
     @Override
     public FollowerConstants setFollowerConstants() { // Any FollowerConstants
         return new P2PFollowerConstants()
-                .setAxialCoeffs(new PDSCoefficients(0.0, 0.0, 0.0, 0.0))
-                .setStrafeCoeffs(new PDSCoefficients(0.0, 0.0, 0.0, 0.0))
-                .setHeadingCoeffs(new PDSCoefficients(0.0, 0.0, 0.0, 0.0))
+                .setAxialCoeffs(new PDFLCoefficients(0.0, 0.0, 0.0))
+                .setStrafeCoeffs(new PDFLCoefficients(0.0, 0.0, 0.0))
+                .setHeadingCoeffs(new PDFLCoefficients(0.0, 0.0, 0.0))
                 .setHeadingTolerance(Angle.fromDeg(2.0))
-                .setAxialTolerance(Distance.fromIn(1.5))
-                .setStrafeTolerance(Distance.fromIn(1.5))
-                .setMaxAxialPower(1)
-                .setMaxStrafePower(1)
+                .setTranslationalTolerance(Distance.fromIn(1.5))
+                .setMaxTranslationalPower(1)
                 .setMaxTurnPower(1);
     }
+
 }
+
+
 
 /* Tank drivetrain constants
 new TankConstants()
@@ -84,39 +87,44 @@ new TankConstants()
 
 /* Swerve drivetrain constants
 new SwerveConstants()
-        .setFrontLeftModuleConstants(
-                new SwerveModuleConstants()
-                        .setMotorName("frontLeftMotor")
-                        .setServoName("flServo")
-                        .setEncoderName("flEncoder")
-                        .setMotorReversed(false)
-        )
-        .setFrontRightModuleConstants(
-                new SwerveModuleConstants()
-                        .setMotorName("frontRightMotor")
-                        .setServoName("frServo")
-                        .setEncoderName("frEncoder")
-                        .setMotorReversed(true)
-        )
-        .setBackLeftModuleConstants(
-                new SwerveModuleConstants()
-                        .setMotorName("backLeftMotor")
-                        .setServoName("blServo")
-                        .setEncoderName("blEncoder")
-                        .setMotorReversed(false)
-        )
-        .setBackRightModuleConstants(
-                new SwerveModuleConstants()
-                        .setMotorName("backRightMotor")
-                        .setServoName("brServo")
-                        .setEncoderName("brEncoder")
-                        .setMotorReversed(true)
-        )
-        .setMaxPower(1.0)
-        .setTrackWidth(Distance.fromMm(0))
-        .setWheelbase(Distance.fromMm(0))
-        .setRobotCentric(true);
-*/
+                .setFrontLeftModuleConstants(
+                        new SwerveModuleConstants()
+                                .setMotorName("frontLeftMotor")
+                                .setServoName("flServo")
+                                .setEncoderName("flEncoder")
+                                .setMotorReversed(false)
+                                .setModuleAngleOffset(0) //degrees
+                )
+                .setFrontRightModuleConstants(
+                        new SwerveModuleConstants()
+                                .setMotorName("frontRightMotor")
+                                .setServoName("frServo")
+                                .setEncoderName("frEncoder")
+                                .setMotorReversed(true)
+                                .setModuleAngleOffset(0) //degrees
+
+                )
+                .setBackLeftModuleConstants(
+                        new SwerveModuleConstants()
+                                .setMotorName("backLeftMotor")
+                                .setServoName("blServo")
+                                .setEncoderName("blEncoder")
+                                .setMotorReversed(false)
+                                .setModuleAngleOffset(0) //degrees
+                )
+                .setBackRightModuleConstants(
+                        new SwerveModuleConstants()
+                                .setMotorName("backRightMotor")
+                                .setServoName("brServo")
+                                .setEncoderName("brEncoder")
+                                .setMotorReversed(true)
+                                .setModuleAngleOffset(0) //degrees
+                )
+                .setMaxPower(1.0)
+                .setTrackWidth(Distance.fromMm(0))
+                .setWheelbase(Distance.fromMm(0))
+                .setRobotCentric(true);
+    }*/
 
 /* Kiwi drivetrain constants
 return new KiwiConstants()
