@@ -4,6 +4,8 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import controllers.PDFLController.PDFLCoefficients;
 import controllers.PDSController;
@@ -12,6 +14,7 @@ import drivetrains.constants.DrivetrainConstants;
 import drivetrains.constants.MecanumConstants;
 import drivetrains.constants.SwerveConstants;
 import drivetrains.constants.SwerveModuleConstants;
+import followers.constants.P2PFollowerConstants;
 import localizers.constants.LocalizerConstants;
 import localizers.constants.PinpointConstants;
 import followers.constants.FollowerConstants;
@@ -27,8 +30,11 @@ import util.Distance;
  * your robot's hardware and tuning preferences.
  *
  * @author Dylan B. 18597 RoboClovers - Delta
+ * @author Sohum Arora - 22985 Paraducks
  */
 public class Constants extends ApexBuilder {
+    private static final Logger log = LoggerFactory.getLogger(Constants.class);
+
     @Override
     public DrivetrainConstants setDrivetrainConstants() { // Any DrivetrainConstants
         return new MecanumConstants()
@@ -58,9 +64,27 @@ public class Constants extends ApexBuilder {
 
     @Override
     public FollowerConstants setFollowerConstants() { // Any FollowerConstants
-        return new BSplineFollowerConstants(); //Add your constants here after tuning it with Panels
+        return new P2PFollowerConstants()
+                .setAxialCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
+                .setStrafeCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
+                .setHeadingCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
+                .setHeadingTolerance(Angle.fromDeg(2.0))
+                .setAxialTolerance(Distance.fromIn(1.5))
+                .setStrafeTolerance(Distance.fromIn(1.5))
+                .setMaxAxialPower(1)
+                .setMaxStrafePower(1)
+                .setMaxTurnPower(1);
     }
 
+    public FollowerConstants setBSplineFollowerConstants() { //TODO this will become setFollowerConstants after P2P goes
+        return new BSplineFollowerConstants()
+                .setTranslationCoeffs(new PDSController.PDSCoefficients(0.1, 0.0, 0.0, 0.0))
+                .setHeadingCoeffs(new PDSController.PDSCoefficients(0.4, 0.0, 0.0, 0.0))
+                .setVelocityFF(0.01)
+                .setHeadingTolerance(Math.toRadians(1.0))
+                .setDistanceTolerance(0.5)
+                .setTTolerance(0.95);
+    }
 }
 
 
