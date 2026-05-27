@@ -43,8 +43,16 @@ public class BSplineFollower extends Follower {
         this.translationController = new PDSController(constants.translationCoeffs);
         this.headingController = new PDSController(constants.headingCoeffs);
 
-        // Mark heading controller as angular so it handles angle normalization if needed
+        // Mark heading controller as angular so it handles angle normalization
         this.headingController.setAngularController();
+    }
+
+    /**
+     * Retrieves the active constants instance driving this follower.
+     * Useful for live tuning via dashboards.
+     */
+    public BSplineFollowerConstants getConstants() {
+        return this.constants;
     }
 
     /**
@@ -133,7 +141,6 @@ public class BSplineFollower extends Follower {
             Pose lockPose = currentNode.holdPose;
             Vector error = lockPose.toVec().subtract(current.toVec());
 
-            // Calculate error magnitude, run it through the base class method, and project it
             double errorMag = error.getMagnitude();
             double translationPower = translationController.calculateFromError(errorMag);
             Vector feedback = errorMag > 0 ? error.normalize().multiply(translationPower) : new Vector(0, 0);
@@ -147,7 +154,7 @@ public class BSplineFollower extends Follower {
             PathSegment segment = currentNode.segment;
             HeadingInterpolator interpolator = currentNode.interpolator;
 
-            if (segment == null || interpolator == null) { // null check
+            if (segment == null || interpolator == null) {
                 stop();
                 return;
             }
@@ -159,7 +166,6 @@ public class BSplineFollower extends Follower {
 
             Vector error = targetPoseVec.subtract(current.toVec());
 
-            // Positional error magnitude processed through PDS
             double errorMag = error.getMagnitude();
             double translationPower = translationController.calculateFromError(errorMag);
             Vector feedback = errorMag > 0 ? error.normalize().multiply(translationPower) : new Vector(0, 0);
@@ -195,11 +201,6 @@ public class BSplineFollower extends Follower {
         }
     }
 
-    /**
-     * Logic to actively hold the last robot Pose on the field
-     * Actively means that the robot will move back to the hold pose if its pushed off it for example
-     * Useful option for autos
-     */
     private void holdPose() {
         Pose currentPose = getPose();
 
@@ -212,8 +213,6 @@ public class BSplineFollower extends Follower {
             return;
         }
 
-        // Output clamping is already handled by Controller's calculateFromError base method,
-        // but we keep the directional vector math clean here.
         double translationPower = translationController.calculateFromError(errorMag);
         Vector feedback = errorMag > 0 ? error.normalize().multiply(translationPower) : new Vector(0, 0);
 
