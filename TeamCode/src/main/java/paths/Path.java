@@ -1,6 +1,5 @@
 package paths;
 
-import android.telecom.Call;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,19 @@ public class Path {
     public enum NodeType {
         DRIVE,
         TURN,
-        HOLD
+        HOLD,
+        ACTION
+    }
+
+    public static class Callback {
+        public final double s;
+        public final Runnable runnable;
+        public boolean triggered = false;
+
+        public Callback(double s, Runnable runnable) {
+            this.s = s;
+            this.runnable = runnable;
+        }
     }
 
     public static class PathNode {
@@ -48,7 +59,7 @@ public class Path {
         public Runnable callback = null;
         public boolean callbackTriggered = false;
         // Define at the top of the class
-        ArrayList<Callback> callbacks = new ArrayList<>();
+        public ArrayList<Callback> callbacks = new ArrayList<>();
 
         public PathNode(PathSegment segment, HeadingInterpolator interpolator) {
             this.type = NodeType.DRIVE;
@@ -75,6 +86,16 @@ public class Path {
             this.targetHeading = null;
             this.holdPose = holdPose;
             this.holdDurationSeconds = durationSeconds;
+        }
+
+        public PathNode(Runnable action) {
+            this.type = NodeType.ACTION;
+            this.segment = null;
+            this.interpolator = null;
+            this.targetHeading = null;
+            this.holdPose = null;
+            this.holdDurationSeconds = 0.0;
+            this.callback = action;
         }
 
         // Revise this method
@@ -110,6 +131,12 @@ public class Path {
     public PathNode getCurrentNode() {
         if (nodes.isEmpty()) throw new IllegalStateException("Path is empty!");
         return nodes.get(currentIndex);
+    }
+
+    public void withCallback(double s, Runnable callback) {
+        if (!nodes.isEmpty()) {
+            nodes.get(nodes.size() - 1).addCallback(s, callback);
+        }
     }
 
     /**
@@ -157,5 +184,11 @@ public class Path {
      */
     public void reset() {
         currentIndex = 0;
+        for (PathNode node : nodes) {
+            node.callbackTriggered = false;
+            for (Callback c : node.callbacks) {
+                c.triggered = false;
+            }
+        }
     }
 }
