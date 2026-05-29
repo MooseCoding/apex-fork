@@ -1,6 +1,7 @@
 package paths.heading;
 
 import geometry.Angle;
+import geometry.GeoUtil;
 import geometry.Vector;
 import java.util.function.Function;
 
@@ -35,6 +36,8 @@ public class HeadingInterpolator {
 
     /**
      * Constructor specifically for custom user-defined heading profiles.
+     *
+     * @throws IllegalStateException if the provided interpolation function is null
      */
     public HeadingInterpolator(Function<Double, Angle> customFunction) {
         this.style = InterpolationStyle.CUSTOM_DIST_FUNCTION;
@@ -85,13 +88,13 @@ public class HeadingInterpolator {
         Angle backwardTangent = forwardTangent.plus(Angle.fromRad(Math.PI));
 
         // Total rotation cost if drive forward
-        double entryCostFwd = Math.abs(getShortestAngularDifference(startHeading, forwardTangent));
-        double exitCostFwd  = Math.abs(getShortestAngularDifference(forwardTangent, endHeading));
+        double entryCostFwd = Math.abs(GeoUtil.getShortestAngularDifference(startHeading, forwardTangent));
+        double exitCostFwd  = Math.abs(GeoUtil.getShortestAngularDifference(forwardTangent, endHeading));
         double totalCostFwd = entryCostFwd + exitCostFwd;
 
         // Total rotation cost if drive backward
-        double entryCostBwd = Math.abs(getShortestAngularDifference(startHeading, backwardTangent));
-        double exitCostBwd  = Math.abs(getShortestAngularDifference(backwardTangent, endHeading));
+        double entryCostBwd = Math.abs(GeoUtil.getShortestAngularDifference(startHeading, backwardTangent));
+        double exitCostBwd  = Math.abs(GeoUtil.getShortestAngularDifference(backwardTangent, endHeading));
         double totalCostBwd = entryCostBwd + exitCostBwd;
 
         // Pick the orientation with the smallest total rotational requirement
@@ -109,24 +112,9 @@ public class HeadingInterpolator {
         // Equation: f(s) = 3s^2 - 2s^3
         double profiledS = (3.0 * s * s) - (2.0 * s * s * s);
 
-        double diffRad = getShortestAngularDifference(startHeading, endHeading);
+        double diffRad = GeoUtil.getShortestAngularDifference(startHeading, endHeading);
         double targetRad = startHeading.getRad() + (diffRad * profiledS);
 
         return Angle.fromRad(targetRad);
-    }
-
-    /**
-     * Calculates the shortest signed angular difference between two angles in radians.
-     * Result is always in the range [-PI, PI].
-     */
-    private double getShortestAngularDifference(Angle from, Angle to) {
-        double diff = to.getRad() - from.getRad();
-
-        // Wrap the difference into the [-PI, PI] range
-        diff = (diff + Math.PI) % (2 * Math.PI) - Math.PI;
-        if (diff < -Math.PI) {
-            diff += 2 * Math.PI;
-        }
-        return diff;
     }
 }

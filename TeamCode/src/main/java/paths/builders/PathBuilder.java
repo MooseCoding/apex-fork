@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import geometry.GeoUtil;
 import paths.movements.Path;
 import paths.callbacks.Callback;
 import geometry.BSpline;
@@ -136,7 +137,6 @@ public class PathBuilder {
      */
     public PathBuilder addAngularCallback(Angle angle, Runnable action) {
         buildTasks.add(() -> {
-            // We can only definitively pre-calculate boundary sweeps for SMOOTH lerping.
             // Tangent and Custom interpolators sweep dynamically based on curve integration,
             // so we bypass the strict bounds check to prevent falsely crashing the user's build.
             if (currentStyle == InterpolationStyle.SMOOTH_START_TO_END) {
@@ -146,8 +146,8 @@ public class PathBuilder {
                 if (Double.isFinite(startRad) && Double.isFinite(endRad)) {
                     double targetRad = angle.getRad();
 
-                    double totalDiff = getShortestAngularDifference(startRad, endRad);
-                    double targetDiff = getShortestAngularDifference(startRad, targetRad);
+                    double totalDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(endRad));
+                    double targetDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(targetRad));
 
                     if (Math.abs(totalDiff) < 1e-6) {
                         if (Math.abs(targetDiff) > 1e-6) {
@@ -242,17 +242,40 @@ public class PathBuilder {
         Angle startH = segmentStartPose.getHeading();
         Angle endH = expectedEndPose.getHeading();
 
-        if (currentStyle == InterpolationStyle.CUSTOM_DIST_FUNCTION) {
-            path.setInterpolator(new HeadingInterpolator(customFunction));
-        } else {
-            boolean missingHeading = !Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad());
-
-            if (missingHeading && currentStyle != InterpolationStyle.TANGENT_FORWARD && currentStyle != InterpolationStyle.TANGENT_CUSTOM) {
-                path.addWarning("APEX WARNING: Segment missing start/end heading! Falling back to TANGENT_FORWARD. Use pose.of(x, y, heading) to fix.");
-                currentStyle = InterpolationStyle.TANGENT_FORWARD;
-            }
-            path.setInterpolator(new HeadingInterpolator(currentStyle, startH, endH, customOffset));
+        switch (currentStyle) {
+            case CONSTANT_START_HEADING:
+                if (!Double.isFinite(startH.getRad())) {
+                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs a start heading! Falling back to TANGENT_FORWARD.");
+                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
+                }
+                break;
+            case CONSTANT_END_HEADING:
+                if (!Double.isFinite(endH.getRad())) {
+                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an end heading! Falling back to TANGENT_FORWARD.");
+                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
+                }
+                break;
+            case TANGENT_CUSTOM:
+                if (!Double.isFinite(customOffset.getRad())) {
+                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an offset! Falling back to TANGENT_FORWARD.");
+                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
+                }
+                break;
+            case SMOOTH_START_TO_END:
+                if (!Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad())) {
+                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs a start heading and end heading! Falling back to TANGENT_FORWARD.");
+                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
+                }
+                break;
+            case CUSTOM_DIST_FUNCTION:
+                if (customFunction == null) {
+                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an interpolation function! Falling back to TANGENT_FORWARD.");
+                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
+                }
+                break;
         }
+
+        path.setInterpolator(new HeadingInterpolator(currentStyle, startH, endH, customOffset));
 
         // 4. Run deferred tasks (validating boundaries and attaching callbacks)
         for (Runnable task : buildTasks) {
@@ -262,10 +285,7 @@ public class PathBuilder {
         return path;
     }
 
-    private double getShortestAngularDifference(double from, double to) {
-        double diff = (to - from) % (2 * Math.PI);
-        if (diff > Math.PI) diff -= 2 * Math.PI;
-        else if (diff < -Math.PI) diff += 2 * Math.PI;
-        return diff;
+    private void buildSafeInterpolator(InterpolationStyle style, Angle startH, Angle endH, Angle customOffset) {
+
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import geometry.GeoUtil;
 import paths.callbacks.Callback;
 import paths.movements.Turn;
 import geometry.Angle;
@@ -53,8 +54,8 @@ public class TurnBuilder implements MovementBuilder<Turn> {
             double endRad = finalTurn.getEndPose().getHeading().getRad();
             double targetRad = angle.getRad();
 
-            double totalDiff = getShortestAngularDifference(startRad, endRad);
-            double targetDiff = getShortestAngularDifference(startRad, targetRad);
+            double totalDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(endRad));
+            double targetDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(targetRad));
 
             if (Math.abs(totalDiff) < 1e-6) {
                 if (Math.abs(targetDiff) > 1e-6) {
@@ -89,16 +90,5 @@ public class TurnBuilder implements MovementBuilder<Turn> {
         }
 
         return finalTurn;
-    }
-
-    /**
-     * Helper method to calculate the shortest signed angular difference between two radians.
-     * Result is always in the range [-PI, PI].
-     */
-    private double getShortestAngularDifference(double from, double to) {
-        double diff = (to - from) % (2 * Math.PI);
-        if (diff > Math.PI) diff -= 2 * Math.PI;
-        else if (diff < -Math.PI) diff += 2 * Math.PI;
-        return diff;
     }
 }
