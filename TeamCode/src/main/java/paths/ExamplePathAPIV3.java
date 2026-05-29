@@ -18,7 +18,7 @@ public class ExamplePathAPIV3 {
     public PoseFactory pose = new PoseFactory(distUnit, angleUnit);
     private Pose startPose;
 
-    // We can store our routine as a sequence of FollowerMovements
+    // Storing our routine components cleanly
     public Path testPath;
     public Turn testTurn;
 
@@ -33,8 +33,7 @@ public class ExamplePathAPIV3 {
     }
 
     /**
-     * A comprehensive showcase of the Movement Builder API.
-     * GitHub snoopers: this is still subject to change. Please send suggestions if you have any!
+     * A comprehensive showcase of the Unified Movement Builder API.
      */
     private void buildRoutine() {
 

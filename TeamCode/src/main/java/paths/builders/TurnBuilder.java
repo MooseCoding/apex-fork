@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import paths.callbacks.Callback;
 import paths.movements.Turn;
-import paths.callbacks.AngleCallback;
 import geometry.Angle;
 import geometry.Pose;
 
@@ -64,7 +64,7 @@ public class TurnBuilder implements MovementBuilder<Turn> {
                 throw new IllegalArgumentException("Angular callback is outside the sweep range of this turn.");
             }
 
-            finalTurn.addCallback(new AngleCallback(angle, action));
+            finalTurn.addCallback(new Callback(angle, action));
         });
 
         return this;

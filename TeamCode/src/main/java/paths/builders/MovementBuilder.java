@@ -7,7 +7,7 @@ import paths.movements.FollowerMovement;
  * * @param <T> The specific type of FollowerMovement this builder constructs (e.g., Path, Turn).
  */
 public interface MovementBuilder<T extends FollowerMovement> {
-    
+
     /**
      * Compiles all configuration data and returns the executable movement.
      * @return The constructed FollowerMovement.
