@@ -34,7 +34,7 @@ public class SwerveConstants extends DrivetrainConstants {
     private double totalMaxCurrent = -1; //amps
 
     /**
-     * deadzone condition used in the Swerve class to prevent jittery servos
+     * deadzone condition used in the SwerveModule class's update method to prevent jittery servos
      * TODO: If your servos are jittery, increase the deadzone. If they aren't responding well, decrease this. Tune until your servo movement is just right
      */
     public static double deadzone = 2.0;
