@@ -83,7 +83,6 @@ public class SwerveModule {
             targetPower *= -1;
             wrappedDelta -= Math.copySign(180, wrappedDelta);
         }
-
         this.setUnoptimizedTargetAngle(getAngle() + wrappedDelta);
         this.setDrivePower(targetPower);
     }

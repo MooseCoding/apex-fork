@@ -12,6 +12,7 @@ import util.MotorMetaData;
  * This is meant to be used for a {@link Swerve} drivetrain inside of {@link SwerveConstants}
  *
  * @author Dylan B. 18597 RoboClovers - Delta
+ * @author Xander Haemel - 31616 - 404 Not Found
  */
 public class SwerveModuleConstants {
     // Hardware

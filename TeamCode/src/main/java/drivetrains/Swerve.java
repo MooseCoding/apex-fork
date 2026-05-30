@@ -94,12 +94,6 @@ public class Swerve extends Drivetrain {
         return fl.getCurrent() + fr.getCurrent() + bl.getCurrent() + br.getCurrent();
     }
 
-    public void manuallySetAngles(double frAngle, double flAngle, double brAngle, double blAngle){
-        fl.setTargets(frAngle, 0);
-        fr.setTargets(flAngle, 0);
-        br.setTargets(brAngle, 0);
-        bl.setTargets(blAngle, 0);
-    }
 
     public void debug(Telemetry telemetry) {
         telemetry.addData("Front Left Module", fl.toString());
