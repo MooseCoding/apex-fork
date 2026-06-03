@@ -4,9 +4,9 @@ import com.qualcomm.robotcore.util.Range;
 
 import controllers.PDFLController;
 import controllers.PDSController;
-import drivetrains.Drivetrain;
+import drivetrains.BaseDrivetrain;
 import followers.constants.BSplineFollowerConstants;
-import localizers.Localizer;
+import localizers.BaseLocalizer;
 
 import paths.movements.FollowerMovement;
 import paths.movements.Path;
@@ -30,7 +30,7 @@ public class MovementFollower extends Follower {
 
     // PDS Controllers for closed-loop feedback
     private final PDSController lateralController;
-    private final PDFLController velocityController;
+    private final PDSController velocityController;
     private final PDSController driveController;
     private final PDSController headingController;
 
@@ -46,18 +46,18 @@ public class MovementFollower extends Follower {
      * MovementFollower constructor
      * @param constants - Your BSplineFollowerConstants (ensure configured)
      */
-    public MovementFollower(BSplineFollowerConstants constants, Drivetrain drivetrain, Localizer localizer) {
+    public MovementFollower(BSplineFollowerConstants constants, BaseDrivetrain<?> drivetrain, BaseLocalizer<?> localizer) {
         super(drivetrain, localizer);
         this.constants = constants;
 
         // Initialize controllers with PDS coefficients from constants
+        this.driveController = new PDSController(constants.driveCoeffs);
         this.lateralController = new PDSController(constants.translationCoeffs);
         this.headingController = new PDSController(constants.headingCoeffs);
 
         // Mark heading controller as angular so it handles angle normalization
         this.headingController.setAngularController();
-        this.velocityController = new PDFLController(new PDFLController.PDFLCoefficients());
-        this.driveController = new PDSController(new PDSController.PDSCoefficients());
+        this.velocityController = new PDSController(constants.velocityCoeffs);
     }
 
     /**
@@ -118,9 +118,9 @@ public class MovementFollower extends Follower {
         if (currentMovement instanceof Turn) {
             Turn turn = (Turn) currentMovement;
 
-            double targetHeading = turn.getEndPose().getHeading().getRad();
-            double currentHeading = current.getHeading().getRad();
-            double headingError = getShortestAngularDistance(currentHeading, targetHeading);
+            Angle targetHeading = turn.getEndPose().getHeading();
+            Angle currentHeading = current.getHeading();
+            double headingError = targetHeading.getShortestAngularDifferenceTo(currentHeading).getRad();
 
             if (Math.abs(headingError) < constants.headingTolerance) {
                 this.isBusy = false;
@@ -139,7 +139,7 @@ public class MovementFollower extends Follower {
             double turnPower = headingController.calculateFromError(headingError);
 
             // Pass the calculated feedback instead of 0, 0
-            drive(feedback.getX().getIn(), feedback.getY().getIn(), turnPower, currentHeading);
+            drive(feedback.getX().getIn(), feedback.getY().getIn(), turnPower, currentHeading.getRad());
 
             // region Curve movement
 
@@ -155,9 +155,9 @@ public class MovementFollower extends Follower {
 
             // region 1. READS: Extract all state, geometry, and error values
             double t = segment.getBestT(current.getPos());
-            double currentHeading = current.getHeading().getRad();
+            Angle currentHeading = current.getHeading();
 
-            Vector robotVelocity = localizer.getVelocity().getPos();
+            Vector robotVelocity = localizer.getVel().getPos();
             Vector targetPoseVec = segment.getPosition(t);
 
             // Raw derivatives needed ONLY for calculating the radius of curvature
@@ -173,11 +173,10 @@ public class MovementFollower extends Follower {
             double distanceTravelled = segment.getLength_in() - distanceRemaining;
             double pathProgression = distanceTravelled / segment.getLength_in();
 
-            Angle targetAngle = interpolator.getHeading(pathProgression, velVec);
-            double targetHeading = targetAngle.getRad();
+            Angle targetHeading = interpolator.getHeading(pathProgression, velVec);
 
             Vector fieldError = targetPoseVec.minus(current.getPos());
-            double headingError = getShortestAngularDistance(currentHeading, targetHeading);
+            double headingError = targetHeading.getShortestAngularDifferenceTo(currentHeading).getRad();
 
             // region 2. CALCULATIONS: Apply physics, scaling, and PID math
             double availableMotorPower = 1.0;
@@ -220,13 +219,13 @@ public class MovementFollower extends Follower {
             double alongTrackError = fieldError.dot(unitTangent).getIn();
 
             // Calculate deceleration if current speed exceeds the safe requested speed
-            double neededAccel = 0.0;
+            double requiredAccel = 0.0;
             if (desiredVelocity < robotVelMag) {
-                neededAccel = desiredVelocity - robotVelMag; // Yields a negative value for braking
+                requiredAccel = desiredVelocity - robotVelMag; // Yields a negative value for braking
             }
 
             // Feedforward: kV scales the target speed, kA (with negative accel) pulls power back to brake
-            double feedforward = (constants.kV * desiredVelocity) + (constants.kA * neededAccel);
+            double feedforward = (constants.kV * desiredVelocity) + (constants.kA * requiredAccel) + driveController.getCoefficients().kS;
 
             double tangentFeedbackMag;
             if (t < 1.0) {
@@ -238,6 +237,7 @@ public class MovementFollower extends Follower {
                 Vector endToRobot = current.getPos().minus(endPos);
 
                 double distancePastEnd = endToRobot.dot(endTangent).getIn();
+                feedforward = 0.0;
                 tangentFeedbackMag = driveController.calculateFromError(-distancePastEnd);
             }
 
@@ -264,7 +264,7 @@ public class MovementFollower extends Follower {
             // region 3. WRITES: Actuate motors or advance state machine
             if (t >= constants.tTolerance && distanceRemaining < constants.distanceTolerance) {
                 Vector finalPosition = currentMovement.getEndPose().getPos();
-                this.setTargetPose(new Pose(finalPosition, Angle.fromRad(targetHeading)));
+                this.setTargetPose(new Pose(finalPosition, targetHeading));
                 this.holdingPose = true;
                 this.isBusy = false;
                 this.currentMovement = null;
@@ -272,7 +272,7 @@ public class MovementFollower extends Follower {
                 return;
             }
 
-            drive(driveX, driveY, turnPower, currentHeading);
+            drive(driveX, driveY, turnPower, currentHeading.getRad());
         }
     }
 
@@ -281,7 +281,7 @@ public class MovementFollower extends Follower {
 
         Vector error = targetPose.getPos().minus(currentPose.getPos());
         double errorMag = error.getMag().getIn();
-        double headingError = getShortestAngularDistance(currentPose.getHeading().getRad(), targetPose.getHeading().getRad());
+        double headingError =  targetPose.getHeading().getShortestAngularDifferenceTo(currentPose.getHeading()).getRad();
 
         if (errorMag < constants.distanceTolerance && Math.abs(headingError) < constants.headingTolerance) {
             drivetrain.stop();
@@ -294,14 +294,6 @@ public class MovementFollower extends Follower {
 
         drive(feedback.getX().getIn(), feedback.getY().getIn(), turnPower, currentPose.getHeading().getRad());
     }
-
-    private double getShortestAngularDistance(double currentRad, double targetRad) {
-        double diff = (targetRad - currentRad) % (pi2);
-        if (diff > Math.PI) diff -= pi2;
-        else if (diff < -Math.PI) diff += pi2;
-        return diff;
-    }
-
     private double calculateNewAvailablePower(double availablePower, double newRequest) {
         return Range.clip(availablePower - Math.abs(newRequest), 0.0, 1.0);
     }
