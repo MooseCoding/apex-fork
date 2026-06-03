@@ -15,11 +15,19 @@ import geometry.Vector;
 import geometry.ArcPose;
 import geometry.Pose;
 
+/**
+ * A builder class designed to construct a {@link Path} fluently.
+ * This class captures path configurations (waypoints, interpolators, callbacks)
+ * in any order and defers geometric compilation until {@link #build()} is called.
+ * C2 (tangent and acceleration) continuity is guaranteed in this builder.
+ * @author Sohum Arora 22985 Paraducks
+ * @author DrPixelCat
+ */
 public class PathBuilder {
-    private final Path path = new Path();
-    private final Pose[] rawPoses;
-    private final Pose startPose;
-    private final Pose expectedEndPose;
+    public Path path;
+
+    private Pose expectedEndPose;
+    private Pose[] rawPoses = null;
 
     private InterpolationStyle currentStyle = InterpolationStyle.SMOOTH_START_TO_END;
     private Angle customOffset = null;
@@ -28,6 +36,7 @@ public class PathBuilder {
     private final List<Runnable> buildTasks = new ArrayList<>();
 
     protected PathBuilder(Pose... poses) {
+        this.path = new Path();
         if (poses.length < 2) {
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
         }
@@ -39,28 +48,66 @@ public class PathBuilder {
         this.expectedEndPose = poses[poses.length - 1];
     }
 
+    private final Pose startPose;
+
+    /**
+     * Overrides the default (SMOOTH_START_TO_END) interpolation with a different {@link InterpolationStyle}
+     *
+     * @param style The interpolation style to apply.
+     * @return The current PathBuilder instance for method chaining.
+     */
     public PathBuilder interpolateWith(InterpolationStyle style) {
         this.currentStyle = style;
         return this;
     }
 
+    /**
+     * Overrides the interpolation style, providing a custom angular offset.
+     * Used primarily for {@link InterpolationStyle#TANGENT_CUSTOM}.
+     *
+     * @param style The interpolation style to apply.
+     * @param angleOffset The fixed angle to offset the calculation by.
+     * @return The current PathBuilder instance for method chaining.
+     */
     public PathBuilder interpolateWith(InterpolationStyle style, Angle angleOffset) {
         this.currentStyle = style;
         this.customOffset = angleOffset;
         return this;
     }
 
+    /**
+     * Overrides the default interpolation with a custom function of distance percentage (s).
+     *
+     * @param function A lambda mapping distance percentage [0.0, 1.0] to a target Angle.
+     * @return The current PathBuilder instance for method chaining.
+     */
     public PathBuilder interpolateWith(Function<Double, Angle> function) {
         this.currentStyle = InterpolationStyle.CUSTOM_DIST_FUNCTION;
         this.customFunction = function;
         return this;
     }
 
+    /**
+     * Attaches an executable callback based on the physical distance percentage.
+     *
+     * @param s The physical distance percentage [0.0, 1.0].
+     * @param action The code to execute.
+     * @return The current PathBuilder instance for method chaining.
+     */
     public PathBuilder addDistanceCallback(double s, Runnable action) {
-        buildTasks.add(() -> path.addCallback(new Callback(s, action)));
+        buildTasks.add(() -> {
+            path.addCallback(new Callback(s, action));
+        });
         return this;
     }
 
+    /**
+     * Attaches an executable callback based on the robot reaching a target heading.
+     *
+     * @param angle The Angle at which the callback should trigger.
+     * @param action The code to execute.
+     * @return The current PathBuilder instance for method chaining.
+     */
     public PathBuilder addAngularCallback(Angle angle, Runnable action) {
         buildTasks.add(() -> {
             if (currentStyle == InterpolationStyle.SMOOTH_START_TO_END) {
@@ -85,33 +132,48 @@ public class PathBuilder {
         return this;
     }
 
+    /**
+     * Compiles all configuration data, calculates new ctrl points from {@link ArcPose}, generates the curve,
+     * verifies callback safety, and returns the completed executable Path.
+     *
+     * @return The fully constructed {@link Path} object ready for execution.
+     */
     public Path build() {
         ArrayList<Pose> processedPoses = new ArrayList<>(rawPoses.length * 2);
         processedPoses.add(rawPoses[0]);
+
         boolean intermediateWarningSent = false;
 
         for (int i = 1; i < rawPoses.length - 1; i++) {
             Pose currentPose = rawPoses[i];
+
             if (!intermediateWarningSent && Double.isFinite(currentPose.getHeading().getRad())) {
-                path.addWarning("APEX WARNING: Intermediate B-Spline headings are currently ignored!");
+                path.addWarning("APEX WARNING: Intermediate B-Spline headings are currently ignored! Only the " +
+                        "final pose heading controls the end heading.");
                 intermediateWarningSent = true;
             }
 
             if (currentPose instanceof ArcPose) {
                 ArcPose arcPose = (ArcPose) currentPose;
                 double radius = arcPose.getRadius().getIn();
-                if (radius < 2.0) throw new IllegalArgumentException("ArcPose radius must be at least 2.0 inches.");
+
+                if (radius < 2.0) {
+                    throw new IllegalArgumentException("ArcPose radius must be at least 2.0 inches.");
+                }
 
                 Pose prevPose = rawPoses[i - 1];
                 Pose nextPose = rawPoses[i + 1];
+
                 Vector vecToLast = prevPose.getPos().minus(arcPose.getPos());
                 Vector vecToNext = nextPose.getPos().minus(arcPose.getPos());
 
                 double distToLast = vecToLast.getMag().getIn();
                 double distToNext = vecToNext.getMag().getIn();
 
-                if (radius > distToLast || radius > distToNext) {
-                    throw new IllegalArgumentException("ArcPose radius exceeds adjacent distance bounds.");
+                if (radius > distToLast) {
+                    throw new IllegalArgumentException("ArcPose radius (" + radius + ") exceeds distance to the last control point.");
+                } else if (radius > distToNext) {
+                    throw new IllegalArgumentException("ArcPose radius (" + radius + ") exceeds distance to the next control point.");
                 }
 
                 Vector p1Vec = arcPose.getPos().plus(vecToLast.times(radius / distToLast));
@@ -120,10 +182,12 @@ public class PathBuilder {
                 processedPoses.add(new Pose(p1Vec, arcPose.getHeading()));
                 processedPoses.add(currentPose);
                 processedPoses.add(new Pose(p2Vec, arcPose.getHeading()));
+
             } else {
                 processedPoses.add(currentPose);
             }
         }
+
         processedPoses.add(rawPoses[rawPoses.length - 1]);
 
         Vector[] vectors = new Vector[processedPoses.size()];
@@ -131,7 +195,8 @@ public class PathBuilder {
             vectors[i] = processedPoses.get(i).getPos();
         }
 
-        path.setParametricPath(new PathSegment(new BSpline(vectors)));
+        PathSegment curve = new PathSegment(new BSpline(vectors));
+        path.setParametricPath(curve);
 
         Angle startH = startPose.getHeading();
         Angle endH = expectedEndPose.getHeading();
@@ -144,7 +209,7 @@ public class PathBuilder {
                         (currentStyle == InterpolationStyle.CUSTOM_DIST_FUNCTION && customFunction == null);
 
         if (missingParams) {
-            path.addWarning("APEX WARNING: " + currentStyle.name() + " missing params! Falling back to TANGENT_FORWARD.");
+            path.addWarning("APEX WARNING: " + currentStyle.name() + " is missing required parameters! Falling back to TANGENT_FORWARD.");
             currentStyle = InterpolationStyle.TANGENT_FORWARD;
         }
 
