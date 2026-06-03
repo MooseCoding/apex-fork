@@ -1,5 +1,6 @@
 package paths;
 
+import paths.builders.Builder;
 import paths.movements.FollowerMovement;
 import paths.movements.Path;
 import paths.movements.Turn;
@@ -16,7 +17,6 @@ public class ExamplePathAPIV3 {
     public PoseFactory pose = new PoseFactory(distUnit, angleUnit);
     private Pose startPose;
 
-    // Storing our routine components cleanly
     public Path testPath;
     public Turn testTurn;
 
@@ -37,9 +37,7 @@ public class ExamplePathAPIV3 {
 
         // 1. THE CORE B-SPLINE
         // Demonstrating standard routing, auto-tightening, and educational warnings
-        testPath = new PathBuilder()
-                // A B-Spline can be created with 2 points in Apex because of ghost points that are added during construction
-                .addControlPoints(
+        testPath = Builder.path(
                         startPose,
                         pose.of(15, 0), // Standard waypoint
                         pose.of(25, 0, 90), // INTENTIONAL WARNING: Apex will ignore this intermediate heading and warn the user!
@@ -65,7 +63,7 @@ public class ExamplePathAPIV3 {
 
         // 6. THE TURN BUILDER
         // Seamlessly starts EXACTLY where the last path ended using .getEndPose()
-        testTurn = new TurnBuilder(testPath.getEndPose())
+        testTurn = Builder.turn(testPath.getEndPose())
                 // Defines the final heading the robot should rotate to
                 .turnTo(Angle.fromRad(Math.PI / 2))
 

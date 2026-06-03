@@ -1,5 +1,6 @@
 package paths;
 
+import paths.builders.Builder;
 import paths.movements.FollowerMovement;
 import paths.movements.Path;
 import paths.movements.Turn;
@@ -47,8 +48,7 @@ public class FullAPIShowcase {
 
         // 1. SMOOTH_START_TO_END
         // Blends the heading linearly from the start pose to the end pose.
-        smoothBlendPath = new PathBuilder()
-                .addControlPoints(
+        smoothBlendPath = Builder.path(
                         startPose,
                         pose.of(15, 0),
                         pose.of(25, 15, 90) // Target heading is 90 degrees
@@ -61,8 +61,7 @@ public class FullAPIShowcase {
         // 2. CONSTANT_START_HEADING
         // The robot locks its orientation to whatever heading it had when this path started.
         // Great for pure strafing. It will stay locked at 90 degrees from the previous path.
-        constStartPath = new PathBuilder()
-                .addControlPoints(
+        constStartPath = Builder.path(
                         smoothBlendPath.getEndPose(),
                         pose.of(25, 40),
                         pose.of(45, 40, 180) // APEX WARNING: The 180 target is ignored due to CONSTANT_START_HEADING
@@ -75,8 +74,7 @@ public class FullAPIShowcase {
 
         // 3. CONSTANT_END_HEADING
         // The robot immediately targets the final heading of the segment and holds it for the whole curve.
-        constEndPath = new PathBuilder()
-                .addControlPoints(
+        constEndPath = Builder.path(
                         constStartPath.getEndPose(),
                         pose.of(60, 20),
                         pose.of(60, 0, 270) // The robot will immediately pivot to face 270 while driving
@@ -88,7 +86,7 @@ public class FullAPIShowcase {
 
         // 4. POINT TURN WITH ANGULAR CALLBACK
         // Spins in place from 270 degrees up to 360/0 degrees.
-        callbackTurn = new TurnBuilder(constEndPath.getEndPose())
+        callbackTurn = Builder.turn(constEndPath.getEndPose())
                 .turnTo(Angle.fromDeg(0))
 
                 // Triggers exactly when the robot sweeps past the 315-degree mark during the spin
@@ -99,8 +97,7 @@ public class FullAPIShowcase {
 
         // 5. TANGENT_FORWARD
         // The robot strictly faces the forward direction of travel along the path (like a car).
-        tangentForwardPath = new PathBuilder()
-                .addControlPoints(
+        tangentForwardPath = Builder.path(
                         callbackTurn.getEndPose(),
                         pose.of(80, 0),
                         pose.of(100, 20, 90) // Target heading ignored; overridden by path tangent
@@ -112,8 +109,7 @@ public class FullAPIShowcase {
 
         // 6. TANGENT_OPTIMAL
         // Points either forward OR backward along the path depending on which requires less physical rotation.
-        tangentOptimalPath = new PathBuilder()
-                .addControlPoints(
+        tangentOptimalPath = Builder.path(
                         tangentForwardPath.getEndPose(),
                         pose.of(120, 20),
                         pose.arcPoseOf(120, 0, 10), // Dynamically fillets this sharp corner
@@ -127,14 +123,12 @@ public class FullAPIShowcase {
 
         // 7. TANGENT_CUSTOM
         // Follows the path tangent, but allows for a custom, fixed angular offset.
-        tangentCustomPath = new PathBuilder()
-                .addControlPoints(
+        tangentCustomPath = Builder.path(
                         tangentOptimalPath.getEndPose(),
                         pose.of(80, -20),
                         pose.of(60, 0, 0)
                 )
                 .interpolateWith(InterpolationStyle.TANGENT_CUSTOM, Angle.fromDeg(90))
-                // NOTE: Depending on your API implementation, you may need a method here to pass the custom offset angle!
                 .build();
 
         // ---------------------------------------------------------
@@ -142,8 +136,7 @@ public class FullAPIShowcase {
         // 8. CUSTOM_DIST_FUNCTION (LAMBDA OVERRIDE)
         // Complete mathematical control over the heading.
         // This calculates a 360-degree tornado spin scaling with path progression (s).
-        lambdaSpinPath = new PathBuilder()
-                .addControlPoints(
+        lambdaSpinPath = Builder.path(
                         tangentCustomPath.getEndPose(),
                         pose.of(30, 0),
                         pose.of(0, 0, 0)
