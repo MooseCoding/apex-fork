@@ -1,7 +1,6 @@
 package util;
 
 import geometry.Angle;
-import geometry.ArcPose;
 import geometry.Dist;
 import geometry.Pose;
 import geometry.Vector;
@@ -71,11 +70,5 @@ public class PoseFactory {
 
     /** Creates a Pose from the given (x, y) values in the configured units with a heading of 0 */
     public Pose of(double x, double y) { return of(x, y, 0); }
-
-    /** Creates an ArcPose from the given (x, y) and radius values in the configured units and mirroring. */
-    public ArcPose arcPoseOf(double x, double y, double radius) {
-        ArcPose pose = new ArcPose(Vector.of(x, y, distUnit), Dist.of(radius, distUnit));
-        return (ArcPose) applyMirror(pose); // Will always return an ArcPose, so we can just cast it
-    }
     // endregion
 }
