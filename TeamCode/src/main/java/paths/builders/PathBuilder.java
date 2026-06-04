@@ -17,18 +17,15 @@ import geometry.Pose;
 
 /**
  * A builder class designed to construct a {@link Path} fluently.
- * <p>
  * This class captures path configurations (waypoints, interpolators, callbacks)
  * in any order and defers geometric compilation until {@link #build()} is called.
  * C2 (tangent and acceleration) continuity is guaranteed in this builder.
- * <p>
- * @author DrPixelCat
  * @author Sohum Arora 22985 Paraducks
+ * @author DrPixelCat
  */
 public class PathBuilder {
     public Path path;
 
-    // State Tracking
     private Pose expectedEndPose;
     private Pose[] rawPoses = null;
 
@@ -36,45 +33,22 @@ public class PathBuilder {
     private Angle customOffset = null;
     private Function<Double, Angle> customFunction = null;
 
-    // Stores callbacks to be validated and attached during the build process
     private final List<Runnable> buildTasks = new ArrayList<>();
 
-    /**
-     * Initializes an empty PathBuilder.
-     * The starting pose must be provided as the first argument in addControlPoints().
-     */
-    public PathBuilder() {
+    protected PathBuilder(Pose... poses) {
         this.path = new Path();
-    }
-
-    /**
-     * Stores a sequence of control points to define a continuous Uniform Cubic B-Spline.
-     * The first Pose in this array defines the start of the path.
-     * Any {@link ArcPose} provided is dynamically split into two adjacent control points to round sharp corners.
-     * <p>
-     * Note: Geometric processing is deferred until {@link #build()} is called.
-     *
-     * @param poses A variable number of waypoints/control points.
-     * @return The current PathBuilder instance for method chaining.
-     * @throws IllegalArgumentException If endpoints are arc poses or insufficient points are provided.
-     * @throws IllegalStateException If control points have already been added to this builder.
-     */
-    public PathBuilder addControlPoints(Pose... poses) {
-        if (this.rawPoses != null) {
-            throw new IllegalStateException("Control points have already been added to this builder!");
-        }
         if (poses.length < 2) {
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
         }
         if (poses[0] instanceof ArcPose || poses[poses.length - 1] instanceof ArcPose) {
             throw new IllegalArgumentException("Endpoints can't be arcs!");
         }
-
         this.rawPoses = poses;
+        this.startPose = poses[0];
         this.expectedEndPose = poses[poses.length - 1];
-
-        return this;
     }
+
+    private final Pose startPose;
 
     /**
      * Overrides the default (SMOOTH_START_TO_END) interpolation with a different {@link InterpolationStyle}
@@ -121,7 +95,9 @@ public class PathBuilder {
      * @return The current PathBuilder instance for method chaining.
      */
     public PathBuilder addDistanceCallback(double s, Runnable action) {
-        buildTasks.add(() -> path.addCallback(new Callback(s, action)));
+        buildTasks.add(() -> {
+            path.addCallback(new Callback(s, action));
+        });
         return this;
     }
 
@@ -134,10 +110,7 @@ public class PathBuilder {
      */
     public PathBuilder addAngularCallback(Angle angle, Runnable action) {
         buildTasks.add(() -> {
-            // Tangent and Custom interpolators sweep dynamically based on curve integration,
-            // so we bypass the strict bounds check to prevent falsely crashing the user's build.
             if (currentStyle == InterpolationStyle.SMOOTH_START_TO_END) {
-                // Safely evaluate the start rotation using the first control point
                 Angle startRad = rawPoses[0].getHeading();
                 Angle endRad = expectedEndPose.getHeading();
 
@@ -156,7 +129,6 @@ public class PathBuilder {
             }
             path.addCallback(new Callback(angle, action));
         });
-
         return this;
     }
 
@@ -167,11 +139,6 @@ public class PathBuilder {
      * @return The fully constructed {@link Path} object ready for execution.
      */
     public Path build() {
-        if (rawPoses == null) {
-            throw new IllegalStateException("Cannot build path: No control points were added!");
-        }
-
-        // 1. Pre-process the points (Expand ArcPoses)
         ArrayList<Pose> processedPoses = new ArrayList<>(rawPoses.length * 2);
         processedPoses.add(rawPoses[0]);
 
@@ -223,7 +190,6 @@ public class PathBuilder {
 
         processedPoses.add(rawPoses[rawPoses.length - 1]);
 
-        // 2. Build the curve using the fully processed points
         Vector[] vectors = new Vector[processedPoses.size()];
         for (int i = 0; i < processedPoses.size(); i++) {
             vectors[i] = processedPoses.get(i).getPos();
@@ -232,8 +198,7 @@ public class PathBuilder {
         PathSegment curve = new PathSegment(new BSpline(vectors));
         path.setParametricPath(curve);
 
-        // 3. Inject interpolator state
-        Angle startH = rawPoses[0].getHeading();
+        Angle startH = startPose.getHeading();
         Angle endH = expectedEndPose.getHeading();
 
         boolean missingParams =
@@ -250,7 +215,6 @@ public class PathBuilder {
 
         path.setInterpolator(new HeadingInterpolator(currentStyle, startH, endH, customOffset));
 
-        // 4. Run deferred tasks (validating boundaries and attaching callbacks)
         for (Runnable task : buildTasks) {
             task.run();
         }

@@ -13,8 +13,8 @@ import drivetrains.BaseDrivetrain;
 import followers.MovementFollower;
 import followers.constants.BSplineFollowerConstants;
 import localizers.BaseLocalizer;
+import paths.builders.Builder;
 import paths.movements.Path;
-import paths.builders.PathBuilder;
 import geometry.Pose;
 import util.AngleUnit;
 import util.DistUnit;
@@ -40,7 +40,7 @@ public class BSplineTuner extends OpMode {
     // --- DASHBOARD TUNING VARIABLES ---
     public static double tP, tD, tS, tSDeadzone; // Translation PDS
     public static double hP, hD, hS, hSDeadzone; // Heading PDS
-    public static double vFF;                    // Velocity Feedforward
+    public static double kV;                    // Velocity Feedforward
     public static double headingTol;             // Heading Tolerance (Degrees)
     public static double distanceTol;            // Distance Tolerance (Inches)
     public static double tTol;                   // T-Parameter Tolerance
@@ -72,7 +72,7 @@ public class BSplineTuner extends OpMode {
         hS = followerConstants.headingCoeffs.kS;
         hSDeadzone = followerConstants.headingCoeffs.kSDeadzone;
 
-        vFF = followerConstants.kV;
+        kV = followerConstants.kV;
         headingTol = Math.toDegrees(followerConstants.headingTolerance);
         distanceTol = followerConstants.distanceTolerance;
         tTol = followerConstants.tTolerance;
@@ -89,21 +89,17 @@ public class BSplineTuner extends OpMode {
     private void runPath(boolean forward) {
         if (!pathActive) {
             if (!forward) {
-                currentPath = new PathBuilder()
-                        .addControlPoints(
-                                localizer.getPose(),
-                                pose.of(24, 24, 90),
-                                pose.of(0, 0, 0)
-                        )
-                        .build();
+                currentPath = Builder.path(
+                        localizer.getPose(),
+                        pose.of(24, 24, 90),
+                        pose.of(0, 0, 0)
+                ).build();
             } else {
-                currentPath = new PathBuilder()
-                        .addControlPoints(
-                                localizer.getPose(),
-                                pose.of(24, 24, 90),
-                                pose.of(48, 0, 0)
-                        )
-                        .build();
+                currentPath = Builder.path(
+                        localizer.getPose(),
+                        pose.of(24, 24, 90),
+                        pose.of(48, 0, 0)
+                ).build();
             }
             follower.follow(currentPath);
             pathActive = true;
@@ -118,7 +114,7 @@ public class BSplineTuner extends OpMode {
         // Push Dashboard variable updates back into the active follower constants
         followerConstants.translationCoeffs = new PDSCoefficients(tP, tD, tS, tSDeadzone);
         followerConstants.headingCoeffs = new PDSCoefficients(hP, hD, hS, hSDeadzone);
-        followerConstants.kV = vFF;
+        followerConstants.kV = kV;
         followerConstants.headingTolerance = Math.toRadians(headingTol);
         followerConstants.distanceTolerance = distanceTol;
         followerConstants.tTolerance = tTol;
