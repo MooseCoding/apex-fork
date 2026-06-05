@@ -1,25 +1,19 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
 import controllers.PDSController;
-import core.ApexBuilder;
+import core.ApexConfig;
 import drivetrains.BaseDrivetrainConfig;
 import drivetrains.Mecanum;
 import localizers.BaseLocalizerConfig;
 import localizers.Pinpoint;
-import followers.constants.FollowerConstants;
-import followers.constants.P2PFollowerConstants;
+import core.FollowerConfig;
 import geometry.Angle;
 import geometry.Dist;
 import util.DistUnit;
 import util.MotorFactory;
 
 /**
- * This class extends {@link ApexBuilder} and provides the specific constants for the drivetrain,
+ * This class extends {@link ApexConfig} and provides the specific constants for the drivetrain,
  * localizer, and follower that we want to use in our OpMode. In this example, we are using a
  * mecanum drivetrain, an OTOS localizer, and a point-to-point follower. You can modify the values in
  * the setDrivetrainConstants(), setLocalizerConstants(), and setFollowerConstants() methods to fit
@@ -27,9 +21,9 @@ import util.MotorFactory;
  *
  * @author Dylan B. 18597 RoboClovers - Delta
  */
-public class Constants extends ApexBuilder {
+public class Config extends ApexConfig {
     @Override
-    public BaseDrivetrainConfig<Mecanum.Config> setDrivetrainConstants() { // Any baseDrivetrainConfig child
+    public BaseDrivetrainConfig<Mecanum.Config> drivetrainConfig() { // Any baseDrivetrainConfig child
         return new Mecanum.Config()
                 .setFrontLeftMotor(new MotorFactory("frontLeftMotor"))
                 .setBackLeftMotor(new MotorFactory("backLeftMotor"))
@@ -40,7 +34,7 @@ public class Constants extends ApexBuilder {
     }
 
     @Override
-    public BaseLocalizerConfig<Pinpoint.Config> setLocalizerConstants() { // Any LocalizerConstants
+    public BaseLocalizerConfig<Pinpoint.Config> localizerConfig() { // Any LocalizerConstants
         return new Pinpoint.Config()
                 .setName("pinpoint")
                 .setOffsets(0, 0, DistUnit.IN)
@@ -49,20 +43,19 @@ public class Constants extends ApexBuilder {
     }
 
     @Override
-    public FollowerConstants setFollowerConstants() { // Any FollowerConstants
-        return new P2PFollowerConstants()
-                .setAxialCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
-                .setStrafeCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
-                .setHeadingCoeffs(new PDSController.PDSCoefficients(0.0, 0.0, 0.0, 0.0))
+    public FollowerConfig followerConfig() { // Any FollowerConstants
+        return new FollowerConfig()
+                .setHeadingCoeffs(new PDSController.PDSCoefficients())
+                .setLateralCoeffs(new PDSController.PDSCoefficients())
+                .setDriveCoeffs(new PDSController.PDSCoefficients())
+                .setVelocityCoeffs(new PDSController.PDSCoefficients())
+                .setFeedforwardCoeffs(0.0, 0.0)
+                .setVelocityLimit(Dist.fromIn(20))
                 .setHeadingTolerance(Angle.fromDeg(2.0))
-                .setAxialTolerance(Dist.fromIn(1.5))
-                .setStrafeTolerance(Dist.fromIn(1.5))
-                .setMaxAxialPower(1)
-                .setStrafeTolerance(Dist.fromIn(1.5))
-                .setMaxStrafePower(1)
-                .setMaxTurnPower(1);
+                .setDistanceTolerance(Dist.fromIn(1.0))
+                .setTTolerance(0.95)
+                .setMaxLateralAccel(10.0);
     }
-
 }
 
 /* Tank drivetrain constants
