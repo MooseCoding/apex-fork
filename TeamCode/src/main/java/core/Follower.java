@@ -23,7 +23,7 @@ import paths.movements.Turn;
  * @author Xander Haemel 31616 404 Not Found
  */
 public class Follower {
-    private final FollowerContants config;
+    private final FollowerConstants config;
     private final BaseDrivetrain<?> drivetrain;
     private final BaseLocalizer<?> localizer;
 

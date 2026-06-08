@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import controllers.PDSController;
 import core.ApexConfig;
-import core.FollowerContants;
+import core.FollowerConstants;
 import drivetrains.BaseDrivetrainConfig;
 import drivetrains.Mecanum;
 import localizers.BaseLocalizerConfig;
@@ -43,8 +43,8 @@ public class Constants extends ApexConfig {
     }
 
     @Override
-    public FollowerContants followerConfig() {
-        return new FollowerContants()
+    public FollowerConstants followerConfig() {
+        return new FollowerConstants()
                 .setHeadingCoeffs(new PDSController.PDSCoefficients())
                 .setLateralCoeffs(new PDSController.PDSCoefficients())
                 .setDriveCoeffs(new PDSController.PDSCoefficients())

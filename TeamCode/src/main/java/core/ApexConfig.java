@@ -13,5 +13,5 @@ public abstract class ApexConfig {
 
     public abstract BaseLocalizerConfig<?> localizerConfig();
 
-    public abstract FollowerContants followerConfig();
+    public abstract FollowerConstants followerConfig();
 }
