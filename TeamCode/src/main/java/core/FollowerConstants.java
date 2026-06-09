@@ -15,29 +15,18 @@ import java.io.FileReader;
  * @author Sohum Arora 22985 Paraducks
  */
 public class FollowerConstants {
-    public PDSCoefficients headingCoeffs;
-    public PDSCoefficients lateralCoeffs;
-    public PDSCoefficients driveCoeffs;
-    public PDSCoefficients velocityCoeffs;
-
-    public double headingKV = 0.0, headingKA = 0.0;
+    public PDSCoefficients headingCoeffs = new PDSCoefficients();
+    public PDSCoefficients lateralCoeffs = new PDSCoefficients();
+    public PDSCoefficients driveCoeffs = new PDSCoefficients();
+    public PDSCoefficients velocityCoeffs = new PDSCoefficients();
     public double lateralKV = 0.0, lateralKA = 0.0;
     public Dist velocityLimit = null;
+    public Angle headingTolerance = Angle.fromDeg(1.0);
+    public Dist distanceTolerance = Dist.fromIn(0.5);
+    public double tTolerance = 0.95;
+    public double maxLateralAccel = 40.0;
 
-    public Angle headingTolerance;
-    public Dist distanceTolerance;
-    public double tTolerance;
-    public double maxLateralAccel;
-
-    public FollowerConstants() { //Values 0 to begin with
-        this.headingCoeffs = new PDSCoefficients();
-        this.driveCoeffs = new PDSCoefficients();
-        this.lateralCoeffs = new PDSCoefficients();
-        this.velocityCoeffs = new PDSCoefficients();
-        this.headingTolerance = Angle.fromDeg(1.0);
-        this.distanceTolerance = Dist.fromIn(0.5);
-        this.tTolerance = 0.95;
-        this.maxLateralAccel = 40.0;
+    public FollowerConstants() {
         loadValues();
     }
 
@@ -75,7 +64,7 @@ public class FollowerConstants {
             }
         }
     }
-    public FollowerConstants loadFromJson() {
+    public FollowerConstants getConstants() {
         return this;
     }
 }

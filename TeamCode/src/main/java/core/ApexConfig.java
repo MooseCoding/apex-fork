@@ -5,7 +5,7 @@ import localizers.BaseLocalizerConfig;
 
 /**
  * Abstract base class for your constants
- * Method implemented by {@link org.firstinspires.ftc.teamcode.Constants}
+ * Methods implemented by your Constants file
  * @author Dylan B. 18597 RoboClovers - Delta
  * @author Sohum Arora 22985 Paraducks
  */

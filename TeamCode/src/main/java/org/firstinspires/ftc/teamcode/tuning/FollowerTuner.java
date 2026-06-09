@@ -69,7 +69,7 @@ public class FollowerTuner extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        FollowerConstants defaults = baseConstants.followerConfig().loadFromJson();
+        FollowerConstants defaults = baseConstants.followerConfig().getConstants();
         headingP = defaults.headingCoeffs.kP;
         headingD = defaults.headingCoeffs.kD;
         headingS = defaults.headingCoeffs.kS;
@@ -113,7 +113,7 @@ public class FollowerTuner extends LinearOpMode {
                     boolean isAngular = phase == TuningPhase.HEADING;
                     switch (state) {
                         case AWAIT_CONFIRM:
-                            telemetry.addLine("Press 'A' to proceed with the " + phase + " tuner");
+                            telemetry.addLine("Press 'A' (cross) to proceed with the " + phase + " tuner");
                             telemetry.update();
                             if (gamepad1.a && !lastA) {
                                 resetKsSearch();
