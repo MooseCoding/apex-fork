@@ -172,6 +172,7 @@ public class FollowerTuner extends LinearOpMode {
                                 }
 
                                 updateFollowerConfig();
+                                readyToRerun = false;
                                 state = TuningState.CONFIRM;
                                 break;
                             }
